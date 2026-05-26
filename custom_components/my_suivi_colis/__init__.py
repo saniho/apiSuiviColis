@@ -74,8 +74,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_register_services(hass, entry, coordinator, store)
 
     www_path = hass.config.path("custom_components", DOMAIN, "www")
-    if DOMAIN not in hass.http.static_routes:
-        hass.http.register_static_path(f"/{DOMAIN}", www_path, cache_headers=False)
+    hass.http.register_static_path(f"/{DOMAIN}", www_path, cache_headers=False)
 
     return True
 
