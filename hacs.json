@@ -1,0 +1,7 @@
+{
+  "name": "My Suivi Colis",
+  "render_readme": true,
+  "domains": ["sensor"],
+  "country": "FR",
+  "homeassistant": "2024.1.0"
+}

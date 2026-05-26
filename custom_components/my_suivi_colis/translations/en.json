@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "My Suivi Colis Configuration",
+        "description": "Configure your package tracking integration.",
+        "data": {
+          "api_key": "API Key (optional)",
+          "scan_interval": "Update interval (minutes)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Only one configuration is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "My Suivi Colis",
+        "description": "You currently have {entries_count} packages being tracked.",
+        "data": {
+          "scan_interval": "Update interval (minutes)"
+        }
+      },
+      "add_tracking": {
+        "title": "Add a package",
+        "description": "Add a new tracking number to follow.",
+        "data": {
+          "name": "Name (optional)",
+          "tracking_number": "Tracking number",
+          "carrier": "Carrier"
+        }
+      },
+      "remove_tracking": {
+        "title": "Remove tracking",
+        "description": "Select the packages to remove.",
+        "data": {
+          "remove": "Packages to remove"
+        }
+      }
+    },
+    "abort": {
+      "no_entries_to_remove": "No packages to remove."
+    }
+  }
+}

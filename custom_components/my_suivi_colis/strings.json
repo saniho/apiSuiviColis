@@ -1,0 +1,47 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configuration de My Suivi Colis",
+        "description": "Configurez votre intégration de suivi de colis.",
+        "data": {
+          "api_key": "Clé API (optionnelle)",
+          "scan_interval": "Intervalle de mise à jour (minutes)"
+        }
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Une seule configuration est autorisée."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "My Suivi Colis",
+        "description": "Vous avez actuellement {entries_count} colis en cours de suivi.",
+        "data": {
+          "scan_interval": "Intervalle de mise à jour (minutes)"
+        }
+      },
+      "add_tracking": {
+        "title": "Ajouter un colis",
+        "description": "Ajoutez un nouveau numéro de colis à suivre.",
+        "data": {
+          "name": "Nom (optionnel)",
+          "tracking_number": "Numéro de suivi",
+          "carrier": "Transporteur"
+        }
+      },
+      "remove_tracking": {
+        "title": "Supprimer un suivi",
+        "description": "Sélectionnez les colis à supprimer.",
+        "data": {
+          "remove": "Colis à supprimer"
+        }
+      }
+    },
+    "abort": {
+      "no_entries_to_remove": "Aucun colis à supprimer."
+    }
+  }
+}

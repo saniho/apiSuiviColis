@@ -1,0 +1,59 @@
+add_tracking:
+  name: Ajouter un suivi
+  description: Ajouter un nouveau numéro de colis à suivre.
+  fields:
+    tracking_number:
+      name: Numéro de suivi
+      description: Numéro de suivi du colis.
+      required: true
+      example: "7A12345678900"
+      selector:
+        text:
+    carrier:
+      name: Transporteur
+      description: Nom du transporteur.
+      required: true
+      selector:
+        select:
+          options:
+            - "laposte"
+            - "colissimo"
+            - "chronopost"
+            - "dhl"
+            - "fedex"
+            - "ups"
+            - "tnt"
+            - "gls"
+            - "mondial_relay"
+            - "amazon"
+            - "dpd"
+            - "relais_colis"
+            - "other"
+    name:
+      name: Nom
+      description: Nom personnalisé pour ce suivi.
+      required: false
+      selector:
+        text:
+    postal_code:
+      name: Code postal
+      description: Code postal du destinataire (nécessaire pour Mondial Relay).
+      required: false
+      example: "75001"
+      selector:
+        text:
+
+remove_tracking:
+  name: Supprimer un suivi
+  description: Supprimer un suivi existant.
+  fields:
+    tracking_number:
+      name: Numéro de suivi
+      description: Numéro de suivi à supprimer.
+      required: true
+      selector:
+        text:
+
+refresh:
+  name: Actualiser
+  description: Forcer l'actualisation de tous les suivis.
