@@ -1,14 +1,14 @@
 {
   "domain": "my_suivi_colis",
   "name": "My Suivi Colis",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "requirements": ["aiohttp>=3.8.0"],
   "dependencies": [],
-  "codeowners": [],
+  "codeowners": ["saniho"],
   "config_flow": true,
   "iot_class": "cloud_polling",
-  "documentation": "https://github.com/user/my_suivi_colis",
-  "issue_tracker": "https://github.com/user/my_suivi_colis/issues",
+  "documentation": "https://github.com/saniho/apiSuiviColis",
+  "issue_tracker": "https://github.com/saniho/apiSuiviColis/issues",
   "integration_type": "device",
   "loggers": ["my_suivi_colis"]
 }
