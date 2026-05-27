@@ -53,7 +53,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     stored = await store.async_load()
     tracking_entries = stored if isinstance(stored, list) else []
 
-    scan_interval = entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
+    options_entries = entry.options.get("tracking_entries", [])
+    existing_numbers = {e[CONF_TRACKING_NUMBER] for e in tracking_entries}
+    for opt_entry in options_entries:
+        if opt_entry[CONF_TRACKING_NUMBER] not in existing_numbers:
+            tracking_entries.append(opt_entry)
+
+    scan_interval = entry.options.get(CONF_SCAN_INTERVAL) or entry.data.get(CONF_SCAN_INTERVAL, DEFAULT_SCAN_INTERVAL)
 
     coordinator = MySuiviColisCoordinator(
         hass,

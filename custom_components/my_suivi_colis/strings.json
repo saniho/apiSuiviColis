@@ -41,7 +41,8 @@
       }
     },
     "abort": {
-      "no_entries_to_remove": "Aucun colis à supprimer."
+      "no_entries_to_remove": "Aucun colis à supprimer.",
+      "already_tracked": "Ce numéro de suivi est déjà en cours de suivi."
     }
   }
 }

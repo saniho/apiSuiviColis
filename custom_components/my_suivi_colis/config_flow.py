@@ -9,6 +9,7 @@ from homeassistant import config_entries
 from homeassistant.core import callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers import config_validation as cv
+from homeassistant.helpers.storage import Store
 
 from .const import (
     CARRIERS,
@@ -21,6 +22,8 @@ from .const import (
     DEFAULT_SCAN_INTERVAL,
     DOMAIN,
     MIN_SCAN_INTERVAL,
+    STORAGE_KEY,
+    STORAGE_VERSION,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -108,21 +111,33 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
             }),
         )
 
+    async def _load_store(self) -> list:
+        store = Store(self.hass, STORAGE_VERSION, STORAGE_KEY)
+        stored = await store.async_load()
+        return stored if isinstance(stored, list) else []
+
+    async def _save_store(self, entries: list) -> None:
+        store = Store(self.hass, STORAGE_VERSION, STORAGE_KEY)
+        await store.async_save(entries)
+
     async def async_step_add_tracking(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
         if user_input is not None:
-            entries = self.config_entry.options.get("tracking_entries", [])
+            entries = await self._load_store()
+            number = user_input[CONF_TRACKING_NUMBER]
+            if any(e[CONF_TRACKING_NUMBER] == number for e in entries):
+                return self.async_abort(reason="already_tracked")
             entries.append({
-                CONF_TRACKING_NUMBER: user_input[CONF_TRACKING_NUMBER],
+                CONF_TRACKING_NUMBER: number,
                 CONF_CARRIER: user_input[CONF_CARRIER],
                 CONF_NAME: user_input.get(CONF_NAME, ""),
                 CONF_POSTAL_CODE: user_input.get(CONF_POSTAL_CODE, ""),
             })
-            return self.async_create_entry(
-                title="",
-                data={**self.config_entry.options, "tracking_entries": entries},
-            )
+            await self._save_store(entries)
+            new_options = dict(self.config_entry.options)
+            new_options.pop("tracking_entries", None)
+            return self.async_create_entry(title="", data=new_options)
 
         return self.async_show_form(
             step_id="add_tracking",
@@ -137,17 +152,17 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_remove_tracking(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        entries = self.config_entry.options.get("tracking_entries", [])
+        entries = await self._load_store()
 
         if user_input is not None:
             indices = user_input.get("remove", [])
             entries = [
                 e for i, e in enumerate(entries) if i not in indices
             ]
-            return self.async_create_entry(
-                title="",
-                data={**self.config_entry.options, "tracking_entries": entries},
-            )
+            await self._save_store(entries)
+            new_options = dict(self.config_entry.options)
+            new_options.pop("tracking_entries", None)
+            return self.async_create_entry(title="", data=new_options)
 
         if not entries:
             return self.async_abort(reason="no_entries_to_remove")
