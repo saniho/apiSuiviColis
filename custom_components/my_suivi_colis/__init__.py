@@ -79,7 +79,29 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         [StaticPathConfig(f"/{DOMAIN}", www_path, cache_headers=False)]
     )
 
+    await _async_register_card_resource(hass)
+
     return True
+
+
+async def _async_register_card_resource(hass: HomeAssistant) -> None:
+    try:
+        resources = hass.data.get("lovelace", {}).get("resources")
+        if resources is None:
+            _LOGGER.debug("Lovelace not ready yet, skipping card auto-registration")
+            return
+        items = await resources.async_items()
+        url = f"/{DOMAIN}/my-suivi-colis-card.js"
+        if any(r.get("url") == url for r in items):
+            _LOGGER.debug("Card resource already registered")
+            return
+        await resources.async_create_item({
+            "res_type": "module",
+            "url": url,
+        })
+        _LOGGER.info("Card resource auto-registered in Lovelace")
+    except Exception as exc:
+        _LOGGER.warning("Could not auto-register card resource: %s", exc)
 
 
 async def _async_register_services(
