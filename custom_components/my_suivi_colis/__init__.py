@@ -81,9 +81,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     await _async_register_services(hass, entry, coordinator, store)
 
     www_path = hass.config.path("custom_components", DOMAIN, "www")
-    await hass.http.async_register_static_paths(
-        [StaticPathConfig(f"/{DOMAIN}", www_path, cache_headers=False)]
-    )
+    try:
+        await hass.http.async_register_static_paths(
+            [StaticPathConfig(f"/{DOMAIN}", www_path, cache_headers=False)]
+        )
+    except Exception as exc:
+        _LOGGER.warning("Static path already registered: %s", exc)
 
     await _async_register_card_resource(hass)
 
