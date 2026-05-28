@@ -68,7 +68,7 @@ class ColissimoTracker(BaseCarrierTracker):
 
     async def track(self, tracking_number: str, entry: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self.BASE_URL}/{tracking_number}"
-        headers = {
+        _LOGGER.debug("Colissimo URL: %s", url)
             "Accept": "application/json",
             "User-Agent": "HomeAssistant/1.0",
         }
@@ -185,7 +185,7 @@ class ChronopostTracker(BaseCarrierTracker):
 
     async def track(self, tracking_number: str, entry: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self.BASE_URL}/{tracking_number}"
-        headers = {
+        _LOGGER.debug("Chronopost URL: %s", url)
             "Accept": "application/json",
             "User-Agent": "HomeAssistant/1.0",
         }
@@ -308,6 +308,7 @@ class MondialRelayTracker(BaseCarrierTracker):
                 "Accept-Language": "fr-FR,fr;q=0.9,en;q=0.8",
             }
             async with aiohttp.ClientSession() as session:
+                _LOGGER.debug("Mondial Relay URL: %s?%s", self.TRACKING_URL, "&".join(f"{k}={v}" for k, v in params.items()))
                 async with session.get(
                     self.TRACKING_URL, params=params, headers=headers, timeout=15,
                     allow_redirects=True,
