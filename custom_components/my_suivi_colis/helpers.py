@@ -469,7 +469,7 @@ class UpsTracker(BaseCarrierTracker):
             "weight": None,
         }
         try:
-            timeout = aiohttp.ClientTimeout(total=30)
+            timeout = aiohttp.ClientTimeout(total=60)
             headers = {
                 "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/120.0.6099.144 Mobile Safari/537.36",
                 "Content-Type": "application/json",
@@ -478,10 +478,10 @@ class UpsTracker(BaseCarrierTracker):
                 "Referer": "https://www.ups.com/track",
             }
             async with aiohttp.ClientSession(timeout=timeout) as session:
+                _LOGGER.debug("UPS GET %s", self.TRACK_URL)
                 async with session.get(
                     self.TRACK_URL,
                     headers={k: v for k, v in headers.items() if k != "Content-Type"},
-                    timeout=aiohttp.ClientTimeout(total=10),
                 ) as resp:
                     html = await resp.text()
 
@@ -489,8 +489,9 @@ class UpsTracker(BaseCarrierTracker):
                     "TrackingNumber": [tracking_number],
                     "Locale": "fr_FR",
                 }
+                _LOGGER.debug("UPS POST %s", self.API_URL)
                 async with session.post(
-                    self.API_URL, json=payload, headers=headers, timeout=15
+                    self.API_URL, json=payload, headers=headers
                 ) as resp:
                     if resp.status == 200:
                         data = await resp.json()
@@ -518,8 +519,8 @@ class UpsTracker(BaseCarrierTracker):
                     result.update(api_result)
                     return result
 
-        except Exception as err:
-            _LOGGER.error("Error tracking UPS %s: %r", tracking_number, err)
+        except Exception:
+            _LOGGER.error("Error tracking UPS %s", tracking_number, exc_info=True)
             result["status"] = STATUS_EXCEPTION
             result["raw_status"] = "error"
         return result
