@@ -45,6 +45,8 @@ ATTR_DESTINATION = "destination"
 ATTR_WEIGHT = "weight"
 ATTR_SENDER = "sender"
 ATTR_RAW_STATUS = "raw_status"
+ATTR_API_URL = "api_url"
+ATTR_LAST_API_CALL = "last_api_call"
 
 STATUS_DELIVERED = "delivered"
 STATUS_IN_TRANSIT = "in_transit"

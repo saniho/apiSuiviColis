@@ -445,6 +445,8 @@ class MySuiviColisCard extends LitElement {
         estimated_delivery: attrs.estimated_delivery,
         last_update: attrs.last_update,
         status_timestamp: attrs.timestamp,
+        api_url: attrs.api_url,
+        last_api_call: attrs.last_api_call,
         history: attrs.history || [],
       });
     }
@@ -684,6 +686,10 @@ class MySuiviColisCard extends LitElement {
                     <div class="package-details sub">
                       ${pkg.raw_status ? html`<span>Statut brut : ${pkg.raw_status}</span>` : ""}
                       ${pkg.status_timestamp ? html`<span> · ${this._formatDate(pkg.status_timestamp)}</span>` : ""}
+                    </div>
+                    <div class="package-details sub">
+                      ${pkg.last_api_call ? html`<span>Dernier appel : ${this._formatDate(pkg.last_api_call)}</span>` : ""}
+                      ${pkg.api_url ? html`<span> · <a href="${pkg.api_url}" target="_blank" style="color:var(--primary-color);">Lien</a></span>` : ""}
                     </div>
                   </div>
                   <div class="package-status" style="color:${color};">${pkg.state || pkg.status}</div>

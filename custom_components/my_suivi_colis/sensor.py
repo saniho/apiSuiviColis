@@ -10,10 +10,12 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from .const import (
+    ATTR_API_URL,
     ATTR_CARRIER,
     ATTR_DESTINATION,
     ATTR_ESTIMATED_DELIVERY,
     ATTR_HISTORY,
+    ATTR_LAST_API_CALL,
     ATTR_LAST_UPDATE,
     ATTR_LATITUDE,
     ATTR_LOCATION,
@@ -95,6 +97,8 @@ class SuiviColisSensor(CoordinatorEntity, SensorEntity):
             ATTR_CARRIER: self._carrier_name,
             ATTR_STATUS: data.get("status"),
             ATTR_RAW_STATUS: data.get("raw_status"),
+            ATTR_API_URL: data.get("api_url"),
+            ATTR_LAST_API_CALL: data.get("last_api_call"),
             ATTR_LOCATION: data.get("location"),
             ATTR_LATITUDE: data.get("latitude"),
             ATTR_LONGITUDE: data.get("longitude"),
