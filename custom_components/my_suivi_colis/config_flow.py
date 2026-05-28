@@ -76,6 +76,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                 return await self.async_step_remove_tracking()
             return await self.async_step_interval()
 
+        entries = await self._load_store()
         return self.async_show_form(
             step_id="init",
             data_schema=vol.Schema({
@@ -85,6 +86,7 @@ class OptionsFlowHandler(config_entries.OptionsFlow):
                     "remove": "Supprimer un colis",
                 }),
             }),
+            description_placeholders={"entries_count": str(len(entries))},
         )
 
     async def async_step_interval(
