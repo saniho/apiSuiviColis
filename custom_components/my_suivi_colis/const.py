@@ -11,8 +11,8 @@ CONF_SCAN_INTERVAL = "scan_interval"
 CONF_NAME = "name"
 CONF_POSTAL_CODE = "postal_code"
 
-DEFAULT_SCAN_INTERVAL = 30
-MIN_SCAN_INTERVAL = 5
+DEFAULT_SCAN_INTERVAL = 60
+MIN_SCAN_INTERVAL = 60
 
 CARRIERS = {
     "laposte": "La Poste",
