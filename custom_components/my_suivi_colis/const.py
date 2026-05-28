@@ -44,6 +44,7 @@ ATTR_ORIGIN = "origin"
 ATTR_DESTINATION = "destination"
 ATTR_WEIGHT = "weight"
 ATTR_SENDER = "sender"
+ATTR_RAW_STATUS = "raw_status"
 
 STATUS_DELIVERED = "delivered"
 STATUS_IN_TRANSIT = "in_transit"

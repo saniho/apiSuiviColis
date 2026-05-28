@@ -85,6 +85,7 @@ class ColissimoTracker(BaseCarrierTracker):
     async def _parse_response(self, data: dict) -> dict[str, Any]:
         result = {
             "status": STATUS_PENDING,
+            "raw_status": "pending",
             "location": None,
             "latitude": None,
             "longitude": None,
@@ -102,6 +103,7 @@ class ColissimoTracker(BaseCarrierTracker):
 
             last = timeline[-1]
             code = last.get("code", "")
+            result["raw_status"] = code
             result["status"] = self._map_status(code)
             result["timestamp"] = last.get("date", datetime.now().isoformat())
 
@@ -157,6 +159,7 @@ class ColissimoTracker(BaseCarrierTracker):
     def _error_result(self, error: str) -> dict[str, Any]:
         return {
             "status": STATUS_EXCEPTION,
+            "raw_status": "error",
             "location": None,
             "latitude": None,
             "longitude": None,
@@ -199,6 +202,7 @@ class ChronopostTracker(BaseCarrierTracker):
     async def _parse_response(self, data: dict) -> dict[str, Any]:
         result = {
             "status": STATUS_PENDING,
+            "raw_status": "pending",
             "location": None,
             "latitude": None,
             "longitude": None,
@@ -215,7 +219,9 @@ class ChronopostTracker(BaseCarrierTracker):
                 return result
 
             last = events[-1]
-            result["status"] = self._map_status(last.get("code", ""))
+            code = last.get("code", "")
+            result["raw_status"] = code
+            result["status"] = self._map_status(code)
             result["location"] = last.get("location")
             result["timestamp"] = last.get("date", datetime.now().isoformat())
 
@@ -252,6 +258,7 @@ class ChronopostTracker(BaseCarrierTracker):
     def _error_result(self, error: str) -> dict[str, Any]:
         return {
             "status": STATUS_EXCEPTION,
+            "raw_status": "error",
             "location": None,
             "latitude": None,
             "longitude": None,
@@ -275,6 +282,7 @@ class MondialRelayTracker(BaseCarrierTracker):
 
         result = {
             "status": STATUS_PENDING,
+            "raw_status": "pending",
             "location": None,
             "latitude": None,
             "longitude": None,
@@ -393,6 +401,7 @@ class MondialRelayTracker(BaseCarrierTracker):
                     "available_for_pickup": STATUS_AVAILABLE_FOR_PICKUP,
                 }
                 result["status"] = status_map.get(last.get("status"), STATUS_IN_TRANSIT)
+                result["raw_status"] = last.get("label", "") or last.get("status", "")
                 result["location"] = None
                 result["timestamp"] = f"{last.get('date', '')} {last.get('time', '')}".strip() or datetime.now().isoformat()
 
@@ -422,6 +431,7 @@ class GenericTracker(BaseCarrierTracker):
     async def track(self, tracking_number: str, entry: dict[str, Any] | None = None) -> dict[str, Any]:
         return {
             "status": STATUS_PENDING,
+            "raw_status": "pending",
             "location": None,
             "latitude": None,
             "longitude": None,

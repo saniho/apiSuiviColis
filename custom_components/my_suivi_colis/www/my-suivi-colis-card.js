@@ -199,6 +199,15 @@ class MySuiviColisCard extends LitElement {
         color: var(--secondary-text-color, #727272);
         margin-top: 2px;
       }
+      .package-details.sub {
+        font-size: 11px;
+        opacity: 0.7;
+        margin-top: 1px;
+      }
+      .tracking-num {
+        font-weight: 500;
+        color: var(--primary-text-color, #212121);
+      }
       .package-status {
         font-size: 12px;
         font-weight: 500;
@@ -427,6 +436,7 @@ class MySuiviColisCard extends LitElement {
         name: state.attributes.friendly_name || entityId,
         state: state.state,
         status: attrs.status || "pending",
+        raw_status: attrs.raw_status,
         location: attrs.location,
         latitude: attrs.latitude,
         longitude: attrs.longitude,
@@ -434,6 +444,7 @@ class MySuiviColisCard extends LitElement {
         tracking_number: attrs.tracking_number,
         estimated_delivery: attrs.estimated_delivery,
         last_update: attrs.last_update,
+        status_timestamp: attrs.timestamp,
         history: attrs.history || [],
       });
     }
@@ -665,9 +676,14 @@ class MySuiviColisCard extends LitElement {
                   <div class="package-info">
                     <div class="package-name">${pkg.name}</div>
                     <div class="package-details">
+                      ${pkg.tracking_number ? html`<span class="tracking-num">#${pkg.tracking_number}</span>` : ""}
                       ${pkg.carrier ? html`<span>${pkg.carrier}</span>` : ""}
                       ${pkg.location ? html`<span> · ${pkg.location}</span>` : ""}
                       ${pkg.estimated_delivery ? html`<span> · ${pkg.estimated_delivery}</span>` : ""}
+                    </div>
+                    <div class="package-details sub">
+                      ${pkg.raw_status ? html`<span>Statut brut : ${pkg.raw_status}</span>` : ""}
+                      ${pkg.status_timestamp ? html`<span> · ${this._formatDate(pkg.status_timestamp)}</span>` : ""}
                     </div>
                   </div>
                   <div class="package-status" style="color:${color};">${pkg.state || pkg.status}</div>
