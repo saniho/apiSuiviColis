@@ -481,32 +481,41 @@ class UpsTracker(BaseCarrierTracker):
                             xsrf_token = morsel.value
                             break
                     if not xsrf_token:
-                        _LOGGER.warning("UPS: no XSRF token found")
-                        return result
+                        _LOGGER.warning("UPS: no XSRF token found, trying without")
 
                 payload = {
                     "TrackingNumber": [tracking_number],
                     "Locale": "fr_FR",
                 }
-                headers = {
+                post_headers = {
                     "Content-Type": "application/json",
                     "Accept": "application/json",
                     "X-Requested-With": "XMLHttpRequest",
-                    "X-XSRF-TOKEN": xsrf_token,
+                    "Origin": "https://www.ups.com",
+                    "Referer": "https://www.ups.com/track",
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/120.0.6099.144 Mobile Safari/537.36",
                 }
+                if xsrf_token:
+                    post_headers["X-XSRF-TOKEN"] = xsrf_token
                 async with session.post(
-                    self.API_URL, json=payload, headers=headers, timeout=15
+                    self.API_URL, json=payload, headers=post_headers, timeout=15
                 ) as resp:
                     if resp.status != 200:
-                        _LOGGER.warning("UPS API HTTP %s", resp.status)
+                        try:
+                            body = await resp.text()
+                        except Exception:
+                            body = f"HTTP {resp.status}"
+                        _LOGGER.warning("UPS API HTTP %s: %s", resp.status, body[:200])
                         return result
                     data = await resp.json()
 
-            track_packages = (
-                data.get("trackResponse", {})
-                .get("shipment", [{}])[0]
-                .get("package", [])
-            )
+            track_packages = None
+            if isinstance(data, dict):
+                track_packages = (
+                    data.get("trackResponse", {})
+                    .get("shipment", [{}])[0]
+                    .get("package", [])
+                )
             if not track_packages:
                 _LOGGER.warning("UPS: no package data in response")
                 return result
