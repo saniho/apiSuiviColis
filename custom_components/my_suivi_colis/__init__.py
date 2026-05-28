@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any
 
@@ -103,7 +104,10 @@ async def _async_register_card_resource(hass: HomeAssistant) -> None:
         if resources is None:
             _LOGGER.debug("Lovelace resources not ready yet, skipping card auto-registration")
             return
-        items = await resources.async_items()
+        if asyncio.iscoroutinefunction(resources.async_items):
+            items = await resources.async_items()
+        else:
+            items = resources.async_items() if callable(resources.async_items) else resources
         url = f"/{DOMAIN}/my-suivi-colis-card.js"
         if any(r.get("url") == url for r in items):
             _LOGGER.debug("Card resource already registered")
