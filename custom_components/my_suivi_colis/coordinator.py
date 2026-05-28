@@ -17,6 +17,7 @@ CARRIER_API_URLS = {
     "laposte": "https://www.laposte.fr/ssu/api/colis/suivi/{}",
     "chronopost": "https://www.chronopost.fr/tracking/ws-rf/shippingCase/{}",
     "mondial_relay": "https://www.mondialrelay.fr/suivi-de-colis/?numero={}",
+    "ups": "https://www.ups.com/track?tracknum={}",
 }
 
 

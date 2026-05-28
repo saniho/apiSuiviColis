@@ -446,13 +446,134 @@ class GenericTracker(BaseCarrierTracker):
         }
 
 
+class UpsTracker(BaseCarrierTracker):
+    TRACK_URL = "https://www.ups.com/track"
+    API_URL = "https://www.ups.com/track/api/Track/GetStatus"
+
+    @property
+    def carrier_key(self) -> str:
+        return "ups"
+
+    async def track(self, tracking_number: str, entry: dict[str, Any] | None = None) -> dict[str, Any]:
+        result = {
+            "status": STATUS_PENDING,
+            "raw_status": "pending",
+            "location": None,
+            "latitude": None,
+            "longitude": None,
+            "timestamp": datetime.now().isoformat(),
+            "estimated_delivery": None,
+            "history": [],
+            "origin": None,
+            "destination": None,
+            "weight": None,
+        }
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(self.TRACK_URL) as resp:
+                    cookies = resp.cookies
+                    xsrf_token = None
+                    for cookie in cookies:
+                        if cookie.key == "X-XSRF-TOKEN-ST":
+                            xsrf_token = cookie.value
+                            break
+                    if not xsrf_token:
+                        _LOGGER.warning("UPS: no XSRF token found")
+                        return result
+
+                payload = {
+                    "TrackingNumber": [tracking_number],
+                    "Locale": "fr_FR",
+                }
+                headers = {
+                    "Content-Type": "application/json",
+                    "Accept": "application/json",
+                    "X-Requested-With": "XMLHttpRequest",
+                    "X-XSRF-TOKEN": xsrf_token,
+                }
+                async with session.post(
+                    self.API_URL, json=payload, headers=headers, timeout=15
+                ) as resp:
+                    if resp.status != 200:
+                        _LOGGER.warning("UPS API HTTP %s", resp.status)
+                        return result
+                    data = await resp.json()
+
+            track_packages = (
+                data.get("trackResponse", {})
+                .get("shipment", [{}])[0]
+                .get("package", [])
+            )
+            if not track_packages:
+                _LOGGER.warning("UPS: no package data in response")
+                return result
+
+            pkg = track_packages[0]
+            activities = pkg.get("activity", [])
+            if not activities:
+                return result
+
+            last = activities[-1]
+            raw_status = (
+                last.get("status", {}).get("description", "")
+                or last.get("status", {}).get("code", "")
+            )
+            date_str = last.get("date", "")
+            time_str = last.get("time", "")
+            ts = f"{date_str}T{time_str}" if date_str and time_str else datetime.now().isoformat()
+            result["timestamp"] = ts
+            result["raw_status"] = raw_status.strip()
+
+            status_code = last.get("status", {}).get("type", "")
+            status_map = {
+                "D": STATUS_DELIVERED,
+                "I": STATUS_IN_TRANSIT,
+                "M": STATUS_PENDING,
+                "P": STATUS_PICKED_UP,
+                "X": STATUS_EXCEPTION,
+                "OT": STATUS_OUT_FOR_DELIVERY,
+                "RS": STATUS_EXCEPTION,
+            }
+            result["status"] = status_map.get(status_code, STATUS_IN_TRANSIT)
+
+            loc = last.get("location", {})
+            addr = loc.get("address", {})
+            city = addr.get("city", "")
+            country = addr.get("countryCode", "")
+            result["location"] = f"{city}, {country}" if city else None
+
+            for act in activities:
+                act_date = act.get("date", "")
+                act_time = act.get("time", "")
+                act_ts = f"{act_date}T{act_time}" if act_date and act_time else None
+                act_loc = act.get("location", {}).get("address", {})
+                act_city = act_loc.get("city", "")
+                act_country = act_loc.get("countryCode", "")
+                act_location = f"{act_city}, {act_country}" if act_city else None
+                result["history"].append({
+                    "status": act.get("status", {}).get("description", ""),
+                    "location": act_location,
+                    "date": act_ts,
+                })
+
+            delivery = pkg.get("deliveryDate", [{}])
+            if delivery and delivery[0].get("date"):
+                result["estimated_delivery"] = delivery[0]["date"]
+
+        except Exception as err:
+            _LOGGER.error("Error tracking UPS %s: %s", tracking_number, err)
+            result["status"] = STATUS_EXCEPTION
+            result["raw_status"] = "error"
+        return result
+
+
 TRACKER_MAP: dict[str, type[BaseCarrierTracker]] = {
     "laposte": LaposteTracker,
     "colissimo": ColissimoTracker,
     "chronopost": ChronopostTracker,
     "dhl": GenericTracker,
     "fedex": GenericTracker,
-    "ups": GenericTracker,
+    "ups": UpsTracker,
     "tnt": GenericTracker,
     "gls": GenericTracker,
     "mondial_relay": MondialRelayTracker,
