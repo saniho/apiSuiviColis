@@ -471,7 +471,10 @@ class UpsTracker(BaseCarrierTracker):
         try:
             timeout = aiohttp.ClientTimeout(total=30)
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                async with session.get(self.TRACK_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                get_headers = {
+                    "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/120.0.6099.144 Mobile Safari/537.36",
+                }
+                async with session.get(self.TRACK_URL, headers=get_headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     xsrf_token = None
                     for key, morsel in resp.cookies.items():
                         if key == "X-XSRF-TOKEN-ST":
