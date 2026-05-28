@@ -146,7 +146,7 @@ async def _async_register_services(
         entries.append(new_entry)
         coordinator.tracking_entries = entries
         await store.async_save(entries)
-        await coordinator.async_refresh()
+        await hass.config_entries.async_reload(entry.entry_id)
 
     async def handle_remove_tracking(call: ServiceCall) -> None:
         number = call.data[CONF_TRACKING_NUMBER]
@@ -158,7 +158,7 @@ async def _async_register_services(
             raise HomeAssistantError(f"Le numéro {number} n'est pas suivi.")
         coordinator.tracking_entries = entries
         await store.async_save(entries)
-        await coordinator.async_refresh()
+        await hass.config_entries.async_reload(entry.entry_id)
 
     async def handle_refresh(call: ServiceCall) -> None:
         await coordinator.async_request_refresh()
