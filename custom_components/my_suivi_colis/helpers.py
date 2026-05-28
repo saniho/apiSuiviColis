@@ -69,6 +69,7 @@ class ColissimoTracker(BaseCarrierTracker):
     async def track(self, tracking_number: str, entry: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self.BASE_URL}/{tracking_number}"
         _LOGGER.debug("Colissimo URL: %s", url)
+        headers = {
             "Accept": "application/json",
             "User-Agent": "HomeAssistant/1.0",
         }
@@ -186,6 +187,7 @@ class ChronopostTracker(BaseCarrierTracker):
     async def track(self, tracking_number: str, entry: dict[str, Any] | None = None) -> dict[str, Any]:
         url = f"{self.BASE_URL}/{tracking_number}"
         _LOGGER.debug("Chronopost URL: %s", url)
+        headers = {
             "Accept": "application/json",
             "User-Agent": "HomeAssistant/1.0",
         }
