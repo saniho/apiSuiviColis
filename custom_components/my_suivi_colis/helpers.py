@@ -470,113 +470,180 @@ class UpsTracker(BaseCarrierTracker):
         }
         try:
             timeout = aiohttp.ClientTimeout(total=30)
+            headers = {
+                "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/120.0.6099.144 Mobile Safari/537.36",
+                "Content-Type": "application/json",
+                "Accept": "application/json",
+                "Origin": "https://www.ups.com",
+                "Referer": "https://www.ups.com/track",
+            }
             async with aiohttp.ClientSession(timeout=timeout) as session:
-                get_headers = {
-                    "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/120.0.6099.144 Mobile Safari/537.36",
-                }
-                async with session.get(self.TRACK_URL, headers=get_headers, timeout=aiohttp.ClientTimeout(total=10)) as resp:
-                    xsrf_token = None
-                    for key, morsel in resp.cookies.items():
-                        if key == "X-XSRF-TOKEN-ST":
-                            xsrf_token = morsel.value
-                            break
-                    if not xsrf_token:
-                        _LOGGER.warning("UPS: no XSRF token found, trying without")
+                async with session.get(
+                    self.TRACK_URL,
+                    headers={k: v for k, v in headers.items() if k != "Content-Type"},
+                    timeout=aiohttp.ClientTimeout(total=10),
+                ) as resp:
+                    html = await resp.text()
 
                 payload = {
                     "TrackingNumber": [tracking_number],
                     "Locale": "fr_FR",
                 }
-                post_headers = {
-                    "Content-Type": "application/json",
-                    "Accept": "application/json",
-                    "X-Requested-With": "XMLHttpRequest",
-                    "Origin": "https://www.ups.com",
-                    "Referer": "https://www.ups.com/track",
-                    "User-Agent": "Mozilla/5.0 (Linux; Android 14) Chrome/120.0.6099.144 Mobile Safari/537.36",
-                }
-                if xsrf_token:
-                    post_headers["X-XSRF-TOKEN"] = xsrf_token
                 async with session.post(
-                    self.API_URL, json=payload, headers=post_headers, timeout=15
+                    self.API_URL, json=payload, headers=headers, timeout=15
                 ) as resp:
-                    if resp.status != 200:
-                        try:
-                            body = await resp.text()
-                        except Exception:
-                            body = f"HTTP {resp.status}"
-                        _LOGGER.warning("UPS API HTTP %s: %s", resp.status, body[:200])
-                        return result
-                    data = await resp.json()
+                    if resp.status == 200:
+                        data = await resp.json()
+                        track_packages = None
+                        if isinstance(data, dict):
+                            track_packages = (
+                                data.get("trackResponse", {})
+                                .get("shipment", [{}])[0]
+                                .get("package", [])
+                            )
+                        if track_packages:
+                            pkg = track_packages[0]
+                            activities = pkg.get("activity", [])
+                            if activities:
+                                _parse_ups_activities(result, activities)
+                                delivery = pkg.get("deliveryDate", [{}])
+                                if delivery and delivery[0].get("date"):
+                                    result["estimated_delivery"] = delivery[0]["date"]
+                                return result
+                    _LOGGER.warning("UPS API failed (HTTP %s), trying HTML scraping", resp.status)
 
-            track_packages = None
-            if isinstance(data, dict):
-                track_packages = (
-                    data.get("trackResponse", {})
-                    .get("shipment", [{}])[0]
-                    .get("package", [])
-                )
-            if not track_packages:
-                _LOGGER.warning("UPS: no package data in response")
-                return result
-
-            pkg = track_packages[0]
-            activities = pkg.get("activity", [])
-            if not activities:
-                return result
-
-            last = activities[-1]
-            raw_status = (
-                last.get("status", {}).get("description", "")
-                or last.get("status", {}).get("code", "")
-            )
-            date_str = last.get("date", "")
-            time_str = last.get("time", "")
-            ts = f"{date_str}T{time_str}" if date_str and time_str else datetime.now().isoformat()
-            result["timestamp"] = ts
-            result["raw_status"] = raw_status.strip()
-
-            status_code = last.get("status", {}).get("type", "")
-            status_map = {
-                "D": STATUS_DELIVERED,
-                "I": STATUS_IN_TRANSIT,
-                "M": STATUS_PENDING,
-                "P": STATUS_PICKED_UP,
-                "X": STATUS_EXCEPTION,
-                "OT": STATUS_OUT_FOR_DELIVERY,
-                "RS": STATUS_EXCEPTION,
-            }
-            result["status"] = status_map.get(status_code, STATUS_IN_TRANSIT)
-
-            loc = last.get("location", {})
-            addr = loc.get("address", {})
-            city = addr.get("city", "")
-            country = addr.get("countryCode", "")
-            result["location"] = f"{city}, {country}" if city else None
-
-            for act in activities:
-                act_date = act.get("date", "")
-                act_time = act.get("time", "")
-                act_ts = f"{act_date}T{act_time}" if act_date and act_time else None
-                act_loc = act.get("location", {}).get("address", {})
-                act_city = act_loc.get("city", "")
-                act_country = act_loc.get("countryCode", "")
-                act_location = f"{act_city}, {act_country}" if act_city else None
-                result["history"].append({
-                    "status": act.get("status", {}).get("description", ""),
-                    "location": act_location,
-                    "date": act_ts,
-                })
-
-            delivery = pkg.get("deliveryDate", [{}])
-            if delivery and delivery[0].get("date"):
-                result["estimated_delivery"] = delivery[0]["date"]
+                api_result = _parse_ups_html(html, tracking_number)
+                if api_result:
+                    _LOGGER.debug("UPS HTML scraping succeeded for %s", tracking_number)
+                    result.update(api_result)
+                    return result
 
         except Exception as err:
-            _LOGGER.error("Error tracking UPS %s: %s", tracking_number, err)
+            _LOGGER.error("Error tracking UPS %s: %r", tracking_number, err)
             result["status"] = STATUS_EXCEPTION
             result["raw_status"] = "error"
         return result
+
+
+def _parse_ups_activities(result: dict[str, Any], activities: list[dict]) -> None:
+    last = activities[-1]
+    raw_status = (
+        last.get("status", {}).get("description", "")
+        or last.get("status", {}).get("code", "")
+    )
+    date_str = last.get("date", "")
+    time_str = last.get("time", "")
+    ts = f"{date_str}T{time_str}" if date_str and time_str else datetime.now().isoformat()
+    result["timestamp"] = ts
+    result["raw_status"] = raw_status.strip()
+
+    status_code = last.get("status", {}).get("type", "")
+    status_map = {
+        "D": STATUS_DELIVERED,
+        "I": STATUS_IN_TRANSIT,
+        "M": STATUS_PENDING,
+        "P": STATUS_PICKED_UP,
+        "X": STATUS_EXCEPTION,
+        "OT": STATUS_OUT_FOR_DELIVERY,
+        "RS": STATUS_EXCEPTION,
+    }
+    result["status"] = status_map.get(status_code, STATUS_IN_TRANSIT)
+
+    loc = last.get("location", {})
+    addr = loc.get("address", {})
+    city = addr.get("city", "")
+    country = addr.get("countryCode", "")
+    result["location"] = f"{city}, {country}" if city else None
+
+    for act in activities:
+        act_date = act.get("date", "")
+        act_time = act.get("time", "")
+        act_ts = f"{act_date}T{act_time}" if act_date and act_time else None
+        act_loc = act.get("location", {}).get("address", {})
+        act_city = act_loc.get("city", "")
+        act_country = act_loc.get("countryCode", "")
+        act_location = f"{act_city}, {act_country}" if act_city else None
+        result["history"].append({
+            "status": act.get("status", {}).get("description", ""),
+            "location": act_location,
+            "date": act_ts,
+        })
+
+
+def _parse_ups_html(html: str, tracking_number: str) -> dict | None:
+    import re
+    try:
+        patterns = [
+            rf'"trackingNumber"\s*:\s*"{re.escape(tracking_number)}"',
+        ]
+        for pat in patterns:
+            match = re.search(pat, html)
+            if match:
+                start = max(0, match.start() - 500)
+                end = min(len(html), match.end() + 2000)
+                chunk = html[start:end]
+                brace_start = chunk.rfind("{", 0, match.start() - start)
+                if brace_start >= 0:
+                    depth = 0
+                    for i in range(brace_start, len(chunk)):
+                        if chunk[i] == "{":
+                            depth += 1
+                        elif chunk[i] == "}":
+                            depth -= 1
+                            if depth == 0:
+                                candidate = chunk[brace_start : i + 1]
+                                try:
+                                    import json
+                                    obj = json.loads(candidate)
+                                    pkg = obj.get("package", obj)
+                                    acts = pkg.get("activity", [])
+                                    if acts:
+                                        res: dict[str, Any] = {}
+                                        _parse_ups_activities(res, acts)
+                                        return res
+                                except (json.JSONDecodeError, TypeError, AttributeError):
+                                    pass
+    except Exception:
+        pass
+
+    try:
+        import re
+        deliveries = re.findall(
+            r'"deliveryDate"\s*:\s*\[\s*\{\s*"date"\s*:\s*"([^"]+)"',
+            html,
+        )
+        if deliveries:
+            last_date = deliveries[-1]
+            return {
+                "status": STATUS_IN_TRANSIT,
+                "raw_status": f"Delivery scheduled: {last_date}",
+                "timestamp": datetime.now().isoformat(),
+                "estimated_delivery": last_date,
+                "location": None,
+                "history": [],
+            }
+    except Exception:
+        pass
+
+    try:
+        import re
+        statuses = re.findall(r'"description"\s*:\s*"([^"]+)"', html)
+        locations = re.findall(r'"city"\s*:\s*"([^"]+)"', html)
+        if statuses:
+            desc = statuses[-1]
+            city = locations[-1] if locations else None
+            loc = f"{city}" if city else None
+            return {
+                "status": STATUS_IN_TRANSIT,
+                "raw_status": desc,
+                "timestamp": datetime.now().isoformat(),
+                "location": loc,
+                "history": [],
+            }
+    except Exception:
+        pass
+
+    return None
 
 
 TRACKER_MAP: dict[str, type[BaseCarrierTracker]] = {

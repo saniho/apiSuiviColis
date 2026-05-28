@@ -60,8 +60,8 @@ class MySuiviColisCoordinator(DataUpdateCoordinator):
                 data["api_url"] = _get_api_url(carrier, number)
                 data["last_api_call"] = datetime.now().isoformat()
                 result[number] = data
-            except Exception as err:
-                _LOGGER.error("Error tracking %s (%s): %s", number, carrier, err)
+            except Exception:
+                _LOGGER.error("Error tracking %s (%s)", number, carrier, exc_info=True)
                 result[number] = {
                     "status": "exception",
                     "location": None,
