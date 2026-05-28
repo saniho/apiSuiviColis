@@ -469,8 +469,9 @@ class UpsTracker(BaseCarrierTracker):
             "weight": None,
         }
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.get(self.TRACK_URL) as resp:
+            timeout = aiohttp.ClientTimeout(total=30)
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.get(self.TRACK_URL, timeout=aiohttp.ClientTimeout(total=10)) as resp:
                     xsrf_token = None
                     for key, morsel in resp.cookies.items():
                         if key == "X-XSRF-TOKEN-ST":
