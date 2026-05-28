@@ -471,11 +471,10 @@ class UpsTracker(BaseCarrierTracker):
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.get(self.TRACK_URL) as resp:
-                    cookies = resp.cookies
                     xsrf_token = None
-                    for cookie in cookies:
-                        if cookie.key == "X-XSRF-TOKEN-ST":
-                            xsrf_token = cookie.value
+                    for key, morsel in resp.cookies.items():
+                        if key == "X-XSRF-TOKEN-ST":
+                            xsrf_token = morsel.value
                             break
                     if not xsrf_token:
                         _LOGGER.warning("UPS: no XSRF token found")
