@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from homeassistant.components.sensor import SensorEntity, SensorStateClass
+from homeassistant.components.sensor import SensorEntity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
@@ -68,7 +68,6 @@ class SuiviColisSensor(CoordinatorEntity, SensorEntity):
         self._carrier = carrier
         self._attr_name = name
         self._attr_unique_id = f"{DOMAIN}_{tracking_number}"
-        self._attr_state_class = SensorStateClass.MEASUREMENT
         self._carrier_name = CARRIERS.get(carrier, carrier)
 
     @property
