@@ -49,7 +49,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     try:
         if hass.data.get(DOMAIN) is None:
             hass.data.setdefault(DOMAIN, {})
-            _LOGGER.info(STARTUP_MESSAGE, title=DOMAIN, version="1.0.0")
+            _LOGGER.info(STARTUP_MESSAGE.format(title=DOMAIN, version="1.0.0"))
 
         store = Store(hass, STORAGE_VERSION, STORAGE_KEY)
         stored = await store.async_load()
